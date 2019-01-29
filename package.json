@@ -1,0 +1,14 @@
+{
+  "name": "worldedit",
+  "private": "true",
+  "scripts": {
+    "build": "gulp build",
+    "watch": "gulp watch",
+    "installmod": "gulp install",
+    "uninstallmod": "gulp uninstall"
+  },
+  "devDependencies": {
+    "minecraft-addon-toolchain": "^1.0.0-beta.1",
+    "minecraft-scripting-toolchain": "^0.1.0"
+  }
+}
