@@ -5,5 +5,8 @@
 accessibility.disableTTS=Text To Speech disabled
 accessibility.enableTTS=Text To Speech enabled
 
-entity.worldedit:selection.name=Selection
-item.spawn_egg.entity.worldedit:selection.name=Selection
+entity.worldedit:select.name=select
+item.spawn_egg.entity.worldedit:select.name=select
+
+entity.worldedit:execute.name=execute
+item.spawn_egg.entity.worldedit:execute.name=execute
