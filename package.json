@@ -8,7 +8,7 @@
     "uninstallmod": "gulp uninstall"
   },
   "devDependencies": {
-    "minecraft-addon-toolchain": "^1.0.1",
-    "minecraft-addon-toolchain-browserify": "^1.0.1"
+    "minecraft-addon-toolchain": "^1.0.3",
+    "minecraft-addon-toolchain-browserify": "^1.0.3"
   }
 }
