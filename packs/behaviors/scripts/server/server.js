@@ -1,7 +1,7 @@
 var serverSystem = server.registerSystem(0, 0);
 
 var positionArray = new Array(0);
-var block, blockState, ticking_area
+var block, blockState, ticking_area, time = 0
 
 serverSystem.initialize = function () {
     serverSystem.listenForEvent("minecraft:player_placed_block", (eventData) => {
@@ -57,27 +57,11 @@ serverSystem.initialize = function () {
             for (var x = minPosition.x; x <= maxPosition.x; x++) {
                 for (var y = minPosition.y; y <= maxPosition.y; y++) {
                     for (var z = minPosition.z; z <= maxPosition.z; z++) {
-                        display_chat("§b NZ is JULAO!")
-                        serverSystem.executeCommand(`/setblock ${x} ${y} ${z} ${block.__identifier__.slice("minecraft:".length)}`, (commandResultData) => {
-
-                            display_chat(JSON.stringify(commandResultData, null, '\t'));
-                            while(serverSystem.getBlock(ticking_area, x, y, z).__identifier__!=block.__identifier__){;}
-                            var targerBlock = serverSystem.getBlock(ticking_area, x, y, z)
-
-                            display_chat(JSON.stringify(serverSystem.getBlock(ticking_area, x, y, z), null, '\t'))
-
-                            var targetBlockStateComponent = serverSystem.getComponent(targerBlock, "minecraft:blockstate")
-
-                            display_chat(JSON.stringify(targetBlockStateComponent, null, '\t'))
-
-                            targetBlockStateComponent.data = blockState
-
-                            display_chat(JSON.stringify(targetBlockStateComponent, null, '\t'))
-
-                            serverSystem.applyComponentChanges(targerBlock, targetBlockStateComponent)
-
-                            display_chat(JSON.stringify(serverSystem.getBlock(ticking_area, x, y, z), null, '\t'))
-                        });
+                        display_chat("Position:")
+                        display_chat(x)
+                        display_chat(y)
+                        display_chat(z)
+                        generate(x,y,z)
                     }
                 }
             }
@@ -89,7 +73,7 @@ serverSystem.initialize = function () {
 }
 
 serverSystem.update = function () {
-
+    time++
 };
 
 function display_chat(message) {
@@ -98,4 +82,23 @@ function display_chat(message) {
         eventData.data.message = message;
         serverSystem.broadcastEvent("minecraft:display_chat_event", eventData);
     }
+}
+
+function generate(x, y, z) {
+    serverSystem.executeCommand(`/setblock ${x} ${y} ${z} ${block.__identifier__.slice("minecraft:".length)}`, (commandResultData) => {
+
+        display_chat(JSON.stringify(commandResultData, null, '\t'));
+        display_chat("Position now:")
+        display_chat(x)
+        display_chat(y)
+        display_chat(z)
+
+        var targerBlock = serverSystem.getBlock(ticking_area, x, y, z)
+
+        display_chat(JSON.stringify(targerBlock, null, '\t'))
+
+        var targetBlockStateComponent = serverSystem.getComponent(targerBlock, "minecraft:blockstate")
+        targetBlockStateComponent.data = blockState
+        serverSystem.applyComponentChanges(targerBlock, targetBlockStateComponent)
+    });
 }
