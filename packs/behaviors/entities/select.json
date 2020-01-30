@@ -25,6 +25,8 @@
         "max": 100
       },
       "minecraft:physics": {
+        "has_collision": false,
+        "has_gravity": false
       },
       "minecraft:nameable": {
       }
