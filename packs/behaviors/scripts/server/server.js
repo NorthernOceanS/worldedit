@@ -9,7 +9,7 @@ serverSystem.initialize = function () {
         "worldedit:setPosition",
         { blockPosition: { x: undefined, y: undefined, z: undefined }, playerID: undefined }
     )
-
+        //
     serverSystem.listenForEvent("minecraft:player_placed_block", (eventData) => {
         displayChat(JSON.stringify(eventData, null, '    '))
 
