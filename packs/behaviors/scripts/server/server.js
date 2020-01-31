@@ -1,26 +1,44 @@
 var serverSystem = server.registerSystem(0, 0);
 
-var positionArray = new Array(0);
-var block, blockState, ticking_area
-
 serverSystem.initialize = function () {
 
+    const scriptLoggerConfig = serverSystem.createEventData("minecraft:script_logger_config");
+	scriptLoggerConfig.data.log_errors = true;
+	scriptLoggerConfig.data.log_information = true;
+	scriptLoggerConfig.data.log_warnings = true;
+	serverSystem.broadcastEvent("minecraft:script_logger_config", scriptLoggerConfig);
+
+    let position = { coordinate: { x: undefined, y: undefined, z: undefined }, tickingArea: undefined, playerID: undefined }
+    let blockType = { blockIdentifier: undefined, blockState: undefined, playerID: undefined }
     serverSystem.registerEventData(
         "worldedit:setPosition",
-        { blockPosition: { x: undefined, y: undefined, z: undefined }, playerID: undefined }
+        position
     )
-        //
+    serverSystem.registerEventData(
+        "worldedit:setBlockType",
+        blockType
+    )
+
     serverSystem.listenForEvent("minecraft:player_placed_block", (eventData) => {
-        displayChat(JSON.stringify(eventData, null, '    '))
 
-        ticking_area = serverSystem.getComponent(eventData.data.player, "minecraft:tick_world").data.ticking_area
-        block = serverSystem.getBlock(ticking_area, eventData.data.block_position)
+        let handContainer = serverSystem.getComponent(eventData.data.player, "minecraft:hand_container").data
+        let offHandItem = handContainer[1]
+        if (offHandItem.__identifier__ == "minecraft:shield") {//Since the player can't place air, holding a shield will represent so. 
+            blockType.blockIdentifier = "minecraft:air"
+            blockType.blockState = null
+        }
+        else {
+            let tickingArea = serverSystem.getComponent(eventData.data.player, "minecraft:tick_world").data.ticking_area
+            let block = serverSystem.getBlock(tickingArea, eventData.data.block_position)
+            blockType.blockIdentifier = block.__identifier__
+            blockType.blockState = serverSystem.getComponent(block, "minecraft:blockstate").data
+        }
+        blockType.playerID = eventData.data.player.id
 
-        displayChat(JSON.stringify(block, null, '    '))
+        let setblockTypeEventData = serverSystem.createEventData("worldedit:setBlockType")
+        setblockTypeEventData.data = blockType
+        serverSystem.broadcastEvent("worldedit:setBlockType", setblockTypeEventData)
 
-        blockState = serverSystem.getComponent(block, "minecraft:blockstate").data
-
-        displayChat(JSON.stringify(blockState, null, '    '))
     })
     serverSystem.listenForEvent("minecraft:entity_created", (eventData) => {
         //displayChat(JSON.stringify(eventData,null,'    '))
@@ -78,32 +96,39 @@ serverSystem.initialize = function () {
     })
 
     serverSystem.listenForEvent("minecraft:block_interacted_with", (eventData) => {
-        displayChat("Event \"minecraft:block_interacted_with\" fired:\n" + JSON.stringify(eventData, null, '    '))
         //TODO:Verify whether the player is permitted to use this addon.
-        let setPositionEventData = serverSystem.createEventData("worldedit:setPosition")
-        setPositionEventData.data.playerID = eventData.data.player.id
-        setPositionEventData.data.blockPosition = eventData.data.block_position
-        serverSystem.broadcastEvent("worldedit:setPosition", setPositionEventData)
-        displayChat(
-            JSON.stringify(
-                serverSystem.getComponent(eventData.data.player, "minecraft:hand_container"),
-                null,
-                '    '
-            )
-        )
-        displayChat(
-            JSON.stringify(
-                serverSystem.getComponent(eventData.data.player, "minecraft:inventory_container"),
-                null,
-                '    '
-            )
-        )
+        let handContainer = serverSystem.getComponent(eventData.data.player, "minecraft:hand_container").data
+        let mainHandItem = handContainer[0].__identifier__
+        switch (mainHandItem) {
+            case "minecraft:wooden_axe": {
+                //Set position.
+
+                position.playerID = eventData.data.player.id
+                position.coordinate = eventData.data.block_position
+                position.tickingArea = serverSystem.getComponent(eventData.data.player, "minecraft:tick_world").data.ticking_area
+
+                let setPositionEventData = serverSystem.createEventData("worldedit:setPosition")
+                setPositionEventData.data = position
+                serverSystem.broadcastEvent("worldedit:setPosition", setPositionEventData)
+
+                break;
+            }
+            case "minecraft:stone_axe": {
+                //Execute.
+
+                break;
+            }
+        }
+
     })
 }
 
 serverSystem.update = function () {
 };
 
+function displayObject(object) {
+    displayChat(JSON.stringify(object, null, '    '))
+}
 function displayChat(message) {
     let eventData = serverSystem.createEventData("minecraft:display_chat_event");
     if (eventData) {
@@ -113,6 +138,7 @@ function displayChat(message) {
 }
 
 function generate(x, y, z) {
+
     serverSystem.executeCommand(`/setblock ${x} ${y} ${z} ${block.__identifier__.slice("minecraft:".length)}`, (commandResultData) => {
 
         displayChat(JSON.stringify(commandResultData, null, '    '));
