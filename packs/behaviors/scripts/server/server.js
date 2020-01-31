@@ -1,25 +1,49 @@
 var serverSystem = server.registerSystem(0, 0);
 
+function Coordinate(x, y, z) {
+    this.x = x
+    this.y = y
+    this.z = z
+}
+function Position(coordinate, tickingArea) {
+    this.coordinate = coordinate
+    this.tickingArea = tickingArea
+}
+function BlockType(blockIdentifier, blockState) {
+    this.blockIdentifier = blockIdentifier
+    this.blockState = blockState
+}
+
 serverSystem.initialize = function () {
 
     const scriptLoggerConfig = serverSystem.createEventData("minecraft:script_logger_config");
-	scriptLoggerConfig.data.log_errors = true;
-	scriptLoggerConfig.data.log_information = true;
-	scriptLoggerConfig.data.log_warnings = true;
-	serverSystem.broadcastEvent("minecraft:script_logger_config", scriptLoggerConfig);
+    scriptLoggerConfig.data.log_errors = true;
+    scriptLoggerConfig.data.log_information = true;
+    scriptLoggerConfig.data.log_warnings = true;
+    serverSystem.broadcastEvent("minecraft:script_logger_config", scriptLoggerConfig);
 
-    let position = { coordinate: { x: undefined, y: undefined, z: undefined }, tickingArea: undefined, playerID: undefined }
-    let blockType = { blockIdentifier: undefined, blockState: undefined, playerID: undefined }
     serverSystem.registerEventData(
-        "worldedit:setPosition",
-        position
+        "worldedit:getPosition",
+        {
+            position: new Position(
+                new Coordinate(undefined, undefined, undefined),
+                undefined
+            ),
+            playerID: undefined
+        }
     )
     serverSystem.registerEventData(
-        "worldedit:setBlockType",
-        blockType
+        "worldedit:getBlockType",
+        {
+            blockType: new BlockType(undefined, undefined),
+            playerID: undefined
+        }
     )
+    serverSystem.registerEventData("worldedit:ExecutionRequest", { playerID: undefined })
 
     serverSystem.listenForEvent("minecraft:player_placed_block", (eventData) => {
+
+        let blockType = new BlockType(undefined, undefined)
 
         let handContainer = serverSystem.getComponent(eventData.data.player, "minecraft:hand_container").data
         let offHandItem = handContainer[1]
@@ -33,11 +57,11 @@ serverSystem.initialize = function () {
             blockType.blockIdentifier = block.__identifier__
             blockType.blockState = serverSystem.getComponent(block, "minecraft:blockstate").data
         }
-        blockType.playerID = eventData.data.player.id
 
-        let setblockTypeEventData = serverSystem.createEventData("worldedit:setBlockType")
-        setblockTypeEventData.data = blockType
-        serverSystem.broadcastEvent("worldedit:setBlockType", setblockTypeEventData)
+        let getblockTypeEventData = serverSystem.createEventData("worldedit:getBlockType")
+        getblockTypeEventData.data.blockType = blockType
+        getblockTypeEventData.data.playerID = eventData.data.player.id
+        serverSystem.broadcastEvent("worldedit:getBlockType", getblockTypeEventData)
 
     })
     serverSystem.listenForEvent("minecraft:entity_created", (eventData) => {
@@ -102,24 +126,35 @@ serverSystem.initialize = function () {
         switch (mainHandItem) {
             case "minecraft:wooden_axe": {
                 //Set position.
+                let position = new Position(
+                    new Coordinate(undefined, undefined, undefined),
+                    undefined
+                )
 
-                position.playerID = eventData.data.player.id
                 position.coordinate = eventData.data.block_position
                 position.tickingArea = serverSystem.getComponent(eventData.data.player, "minecraft:tick_world").data.ticking_area
 
-                let setPositionEventData = serverSystem.createEventData("worldedit:setPosition")
-                setPositionEventData.data = position
-                serverSystem.broadcastEvent("worldedit:setPosition", setPositionEventData)
+                let getPositionEventData = serverSystem.createEventData("worldedit:getPosition")
+                getPositionEventData.data.position = position
+                getPositionEventData.data.playerID = eventData.data.player.id
+                serverSystem.broadcastEvent("worldedit:getPosition", getPositionEventData)
 
                 break;
             }
             case "minecraft:stone_axe": {
                 //Execute.
-
+                let executeRequestEventData = serverSystem.createEventData("worldedit:ExecutionRequest")
+                executeRequestEventData.data.playerID = eventData.data.player.id
+                serverSystem.broadcastEvent("worldedit:ExecutionRequest", executeRequestEventData)
                 break;
             }
         }
 
+    })
+
+    serverSystem.listenForEvent("worldedit:ExecutionResponse", (eventData) => {
+        //displayObject(eventData)
+        for (let block of eventData.data.blockArray) setBlock(block)
     })
 }
 
@@ -137,22 +172,26 @@ function displayChat(message) {
     }
 }
 
-function generate(x, y, z) {
+function setBlock(block) {
 
-    serverSystem.executeCommand(`/setblock ${x} ${y} ${z} ${block.__identifier__.slice("minecraft:".length)}`, (commandResultData) => {
+    displayChat("§b We all agree, NZ is JULAO!")
+    displayObject(block)
+    let blockType = block.blockType
+    let position = block.position
+    let coordinate = position.coordinate
 
-        displayChat(JSON.stringify(commandResultData, null, '    '));
+    serverSystem.executeCommand(`/setblock ${coordinate.x} ${coordinate.y} ${coordinate.z} ${blockType.blockIdentifier.slice(blockType.blockIdentifier.indexOf(":") + 1)}`, (commandResultData) => {
+
+        displayObject(commandResultData);
         displayChat("Position now:")
-        displayChat(x)
-        displayChat(y)
-        displayChat(z)
+        displayObject(coordinate)
 
-        var targerBlock = serverSystem.getBlock(ticking_area, x, y, z)
+        var targerBlock = serverSystem.getBlock(position.tickingArea, coordinate.x, coordinate.y, coordinate.z)
 
         displayChat(JSON.stringify(targerBlock, null, '    '))
 
         var targetBlockStateComponent = serverSystem.getComponent(targerBlock, "minecraft:blockstate")
-        targetBlockStateComponent.data = blockState
+        targetBlockStateComponent.data = blockType.blockState
         serverSystem.applyComponentChanges(targerBlock, targetBlockStateComponent)
     });
 }
